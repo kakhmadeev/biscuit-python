@@ -34,7 +34,8 @@ PublicKeyProvider: TypeAlias = Union[
 ]
 
 class Algorithm:
-    pass
+    Ed25519: Algorithm
+    Secp256r1: Algorithm
 
 class BiscuitBuilder:
     # Create a builder from a datalog snippet and optional parameter values
@@ -70,7 +71,7 @@ class BiscuitBuilder:
     # :type scope_parameters: dict, optional
     def add_code(
         self,
-        source: Optional[str] = None,
+        source: str,
         parameters: Parameters = None,
         scope_parameters: ScopeParameters = None,
     ) -> None: ...
@@ -236,7 +237,7 @@ class AuthorizerBuilder:
     # :type scope_parameters: dict, optional
     def add_code(
         self,
-        source: Optional[str] = None,
+        source: str,
         parameters: Parameters = None,
         scope_parameters: ScopeParameters = None,
     ) -> None: ...
@@ -317,6 +318,32 @@ class AuthorizerBuilder:
     # :type token: Biscuit
     def build(self, token: Biscuit) -> Authorizer: ...
 
+    # Build an authorizer without a token
+    def build_unauthenticated(self) -> Authorizer: ...
+
+    # Adds a fact `time($current_time)` with the current time
+    def set_time(self) -> None: ...
+
+    # Register an external function, called with one or two terms
+    #
+    # :param name: the function name, as used in datalog
+    # :type name: str
+    # :param func: the function implementation
+    # :type func: function
+    def register_extern_func(self, name: str, func: Callable[..., Term]) -> None: ...
+
+    # Register several external functions
+    #
+    # :param funcs: external functions, by name
+    # :type funcs: dict
+    def register_extern_funcs(self, funcs: Mapping[str, Callable[..., Term]]) -> None: ...
+
+    # Replace all the registered external functions
+    #
+    # :param funcs: external functions, by name
+    # :type funcs: dict
+    def set_extern_funcs(self, funcs: Mapping[str, Callable[..., Term]]) -> None: ...
+
 class Authorizer:
     # Runs the authorization checks and policies
     #
@@ -373,7 +400,7 @@ class Authorizer:
 class BlockBuilder:
     def __new__(
         cls,
-        source: Optional[str],
+        source: Optional[str] = None,
         parameters: Parameters = None,
         scope_parameters: ScopeParameters = None,
     ) -> BlockBuilder: ...
@@ -415,7 +442,7 @@ class BlockBuilder:
     # :type scope_parameters: dict, optional
     def add_code(
         self,
-        source: Optional[str],
+        source: str,
         parameters: Parameters = None,
         scope_parameters: ScopeParameters = None,
     ) -> None: ...
@@ -433,23 +460,6 @@ class KeyPair:
     # :rtype: KeyPair
     @classmethod
     def from_private_key(cls, private_key: PrivateKey) -> KeyPair: ...
-
-    # Generate a keypair from a DER buffer
-    #
-    # :param bytes: private key bytes in DER format
-    # :type private_key: PrivateKey
-    # :return: the corresponding keypair
-    # :rtype: KeyPair
-    @classmethod
-    def from_private_key_der(cls, der: bytes) -> KeyPair: ...
-
-    #
-    # :param bytes: private key bytes in PEM format
-    # :type private_key: PrivateKey
-    # :return: the corresponding keypair
-    # :rtype: KeyPair
-    @classmethod
-    def from_private_key_pem(cls, pem: str) -> KeyPair: ...
 
     # The public key part
     @property
@@ -471,10 +481,30 @@ class PublicKey:
     #
     # :param data: the raw bytes
     # :type data: bytes
+    # :param alg: the key algorithm
+    # :type alg: Algorithm
     # :return: the public key
     # :rtype: PublicKey
     @classmethod
-    def from_bytes(cls, data: bytes) -> PublicKey: ...
+    def from_bytes(cls, data: bytes, alg: Algorithm) -> PublicKey: ...
+
+    # Deserializes a public key from a DER buffer
+    #
+    # :param der: the DER buffer
+    # :type der: bytes
+    # :return: the public key
+    # :rtype: PublicKey
+    @classmethod
+    def from_der(cls, der: bytes) -> PublicKey: ...
+
+    # Deserializes a public key from a PEM string
+    #
+    # :param pem: the PEM string
+    # :type pem: str
+    # :return: the public key
+    # :rtype: PublicKey
+    @classmethod
+    def from_pem(cls, pem: str) -> PublicKey: ...
 
     # Deserializes a public key from a hexadecimal string
     #
@@ -496,10 +526,30 @@ class PrivateKey:
     #
     # :param data: the raw bytes
     # :type data: bytes
+    # :param alg: the key algorithm
+    # :type alg: Algorithm
     # :return: the private key
     # :rtype: PrivateKey
     @classmethod
-    def from_bytes(cls, data: bytes) -> PrivateKey: ...
+    def from_bytes(cls, data: bytes, alg: Algorithm) -> PrivateKey: ...
+
+    # Deserializes a private key from a DER buffer
+    #
+    # :param der: the DER buffer
+    # :type der: bytes
+    # :return: the private key
+    # :rtype: PrivateKey
+    @classmethod
+    def from_der(cls, der: bytes) -> PrivateKey: ...
+
+    # Deserializes a private key from a PEM string
+    #
+    # :param pem: the PEM string
+    # :type pem: str
+    # :return: the private key
+    # :rtype: PrivateKey
+    @classmethod
+    def from_pem(cls, pem: str) -> PrivateKey: ...
 
     # Deserializes a private key from a hexadecimal string
     #
